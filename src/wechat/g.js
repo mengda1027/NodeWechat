@@ -5,8 +5,8 @@ var getRawBody = require('raw-body')
 var Wechat = require('./wechat')
 var util = require('./util')
 
-module.exports = function(opts){
-    //var wechat = new Wechat(opts)
+module.exports = function(opts,handler){
+    var wechat = new Wechat(opts)
     return function *(next){
         var that = this
         var token = opts.token
@@ -28,6 +28,7 @@ module.exports = function(opts){
                 this.body = 'wrong'
                 return false
             }else{
+                //data是原始的xml数据
                 var data = yield getRawBody(this.req,{
                     length:this.length,
                     limit:'1mb',
@@ -36,26 +37,29 @@ module.exports = function(opts){
                 var content =yield util.parseXMLAsync(data)
                 //console.log(content.xml)
                 var message = util.formatMessage(content.xml)
-                //console.log(message)
-                if(message.MsgType === 'event'){
-                    if(message.Event === 'subscribe'){
-                        var now = new Date().getTime()
+                console.log(message)
+                //if(message.MsgType === 'event'){
+                //    if(message.Event === 'subscribe'){
+                //        var now = new Date().getTime()
+                //
+                //        that.status = 200
+                //        that.type = 'application/xml'
+                //        that.body = '<xml>'+
+                //            '<ToUserName><![CDATA['+ message.FromUserName +']]></ToUserName>'+
+                //            '<FromUserName><![CDATA['+ message.ToUserName +']]></FromUserName>'+
+                //            '<CreateTime>'+ now +'</CreateTime>'+
+                //            '<MsgType><![CDATA[text]]></MsgType>'+
+                //            '<Content><![CDATA[HI，这是Meta-D的公众号]]></Content>'+
+                //            '</xml>'
+                //        return
+                //    }
+                //}
+                this.weixin = message
 
-                        that.status = 200
-                        that.type = 'application/xml'
-                        that.body = '<xml>'+
-                            '<ToUserName><![CDATA['+ message.FromUserName +']]></ToUserName>'+
-                            '<FromUserName><![CDATA['+ message.ToUserName +']]></FromUserName>'+
-                            '<CreateTime>'+ now +'</CreateTime>'+
-                            '<MsgType><![CDATA[text]]></MsgType>'+
-                            '<Content><![CDATA[HI，这是Meta-D的公众号]]></Content>'+
-                            '</xml>'
-                        return
-                    }
-                }
+                yield handler.call(this,next)
+
+                wechat.reply.call(this)
             }
-
         }
-
     }
 }

@@ -2,6 +2,7 @@
 
 var Promise = require('bluebird')
 var request = Promise.promisify(require('request'))
+var util = require('./util')
 
 var prefix = 'https://api.weixin.qq.com/cgi-bin/'
 var api = {
@@ -23,7 +24,7 @@ function Wechat(opts){
                 return that.updateAccessToken()
             }
             if(that.isValidAccessToken(data)){  //检查合法性
-                Promise.resolve(data)
+                return Promise.resolve(data)
             }else{
                 return that.updateAccessToken() //还有return?
             }
@@ -31,7 +32,6 @@ function Wechat(opts){
         .then(function(data){
             that.access_token = data.access_token
             that.expires_in = data.expires_in
-
             that.saveAccessToken(data)
         })
 }
@@ -52,7 +52,6 @@ Wechat.prototype.isValidAccessToken = function(data){
     }else{
         return false
     }
-
 }
 
 /**
@@ -74,6 +73,17 @@ Wechat.prototype.updateAccessToken = function(){
             resolve(data)
         })
     })
+}
+
+Wechat.prototype.reply = function(){
+    var content = this.body
+    var message = this.weixin
+    //回复的xml
+    var xml = util.tpl(content,message)
+
+    this.status = 200
+    this.type = 'application/xml'
+    this.body = xml
 }
 
 module.exports = Wechat
